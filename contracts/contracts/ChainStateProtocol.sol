@@ -4,14 +4,14 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "hardhat/console.sol";
 
-contract RenfinanceProtocol is ERC721URIStorage {
+contract ChainStateProtocol is ERC721URIStorage {
     //////////////////////
     //state variables
     //////////////////////
     using Counters for Counters.Counter;
     Counters.Counter public assetsTotalCount;
 
-    //address with admin right for Renfinance Protocol
+    //address with admin right for ChainState Protocol
     address payable internal administrator;
 
     //charge for an asset to be added to the protocol by an admin
@@ -60,7 +60,7 @@ contract RenfinanceProtocol is ERC721URIStorage {
     //constructor
     /////////////////////
     constructor(address payable admin, uint64 listingCharge)
-        ERC721("Renfinance Protocol", "RnP")
+        ERC721("ChainState Protocol", "CSP")
     {
         require(admin != address(0));
 
@@ -73,7 +73,7 @@ contract RenfinanceProtocol is ERC721URIStorage {
     //////////////////////
     modifier onlyAdmin() {
         if (msg.sender != administrator) {
-            revert notAdminError("Renfinance Protocol: Only administrator");
+            revert notAdminError("ChainState Protocol: Only administrator");
         }
         _;
     }
@@ -91,19 +91,19 @@ contract RenfinanceProtocol is ERC721URIStorage {
     ) external onlyAdmin {
         if (properties.length == 0) {
             revert wrongAction(
-                "Renfinance Protocol: Asset must have a unique property"
+                "ChainState Protocol: Asset must have a unique property"
             );
         }
 
         if (assetSalePrice == 0) {
             revert wrongAction(
-                "Renfinance Protocol: Asset sale price must have worth"
+                "ChainState Protocol: Asset sale price must have worth"
             );
         }
 
         require(
             maxNumberOfOwners > 0,
-            "Renfinance Protocol: Max number of owners can't be zero"
+            "ChainState Protocol: Max number of owners can't be zero"
         );
 
         uint32 assetId = uint32(assetsTotalCount.current());
@@ -142,7 +142,7 @@ contract RenfinanceProtocol is ERC721URIStorage {
         address _from,
         uint256 _tokenId,
         bytes calldata _data
-    ) external override returns (bytes4) {
+    ) external returns (bytes4) {
         _operator;
         _from;
         _tokenId;

@@ -883,45 +883,19 @@
     "absolutePath": "contracts/RenfinanceProtocol.sol",
     "id": 36,
     "exportedSymbols": {
-      "Address": [
-        1596
-      ],
-      "Context": [
-        1618
-      ],
-      "ERC165": [
-        1817
-      ],
-      "ERC721": [
-        980
-      ],
-      "ERC721URIStorage": [
-        1239
-      ],
-      "IERC165": [
-        1829
-      ],
-      "IERC721": [
-        1096
-      ],
-      "IERC721Metadata": [
-        1266
-      ],
-      "IERC721Receiver": [
-        1114
-      ],
-      "Math": [
-        2694
-      ],
-      "RenfinanceProtocol": [
-        35
-      ],
-      "Strings": [
-        1793
-      ],
-      "console": [
-        10758
-      ]
+      "Address": [1596],
+      "Context": [1618],
+      "ERC165": [1817],
+      "ERC721": [980],
+      "ERC721URIStorage": [1239],
+      "IERC165": [1829],
+      "IERC721": [1096],
+      "IERC721Metadata": [1266],
+      "IERC721Receiver": [1114],
+      "Math": [2694],
+      "RenfinanceProtocol": [35],
+      "Strings": [1793],
+      "console": [10758]
     },
     "nodeType": "SourceUnit",
     "src": "32:752:0",
@@ -930,12 +904,7 @@
         "id": 1,
         "nodeType": "PragmaDirective",
         "src": "32:23:0",
-        "literals": [
-          "solidity",
-          "^",
-          "0.8",
-          ".9"
-        ]
+        "literals": ["solidity", "^", "0.8", ".9"]
       },
       {
         "id": 2,
@@ -1268,9 +1237,9 @@
                     "src": "749:21:0",
                     "typeDescriptions": {
                       "typeIdentifier": "t_stringliteral_efa56fb211fd85d3b59cbb5510199bab7a1aee69dede6b9a43fe8eb0f7157ad1",
-                      "typeString": "literal_string \"Renfinance Protocol\""
+                      "typeString": "literal_string \"ChainState Protocol\""
                     },
-                    "value": "Renfinance Protocol"
+                    "value": "ChainState Protocol"
                   },
                   {
                     "hexValue": "526e50",
@@ -1294,9 +1263,7 @@
                 "modifierName": {
                   "id": 28,
                   "name": "ERC721",
-                  "nameLocations": [
-                    "742:6:0"
-                  ],
+                  "nameLocations": ["742:6:0"],
                   "nodeType": "IdentifierPath",
                   "referencedDeclaration": 980,
                   "src": "742:6:0"
@@ -1331,9 +1298,7 @@
             "baseName": {
               "id": 4,
               "name": "ERC721URIStorage",
-              "nameLocations": [
-                "197:16:0"
-              ],
+              "nameLocations": ["197:16:0"],
               "nodeType": "IdentifierPath",
               "referencedDeclaration": 1239,
               "src": "197:16:0"
@@ -1348,14 +1313,7 @@
         "contractKind": "contract",
         "fullyImplemented": true,
         "linearizedBaseContracts": [
-          35,
-          1239,
-          980,
-          1266,
-          1096,
-          1817,
-          1829,
-          1618
+          35, 1239, 980, 1266, 1096, 1817, 1829, 1618
         ],
         "name": "RenfinanceProtocol",
         "nameLocation": "175:18:0",
