@@ -2,7 +2,6 @@
 pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
-import "hardhat/console.sol";
 
 contract ChainStateProtocol is ERC721URIStorage {
     //////////////////////
@@ -24,15 +23,16 @@ contract ChainStateProtocol is ERC721URIStorage {
         string assetLocation;
         uint112 assetSalePrice;
         string[] properties;
-        address[] fractionalOwners;
+        address[] fractionalOwners; //individual fraction owners will have their unique balance through a mapping
         uint16 maxNumberOfOwners;
         uint16 totalOwners;
+        uint256 totalAmountFromSales;
     }
 
     //////////////////////
     //mappings
     //////////////////////
-    mapping(uint32 => AssetDetails) idToAssets;
+    mapping(uint256 => AssetDetails) idToAssets;
     mapping(address => AssetDetails[]) ownedAssets;
 
     //////////////////////
@@ -50,15 +50,16 @@ contract ChainStateProtocol is ERC721URIStorage {
         uint112 assetSalePrice,
         string[] properties,
         uint16 maxNumberOfOwners,
-        uint16 totalOwners
+        uint16 totalOwners,
+        uint256 totalAmountFromSales
     );
 
     //event for ERC721 receiver
     event Received();
 
-    //////////////////////
-    //constructor
-    /////////////////////
+    /// -----------------------------------
+    /// ----------- CONSTRUCTOR -----------
+    /// -----------------------------------
     constructor(address payable admin, uint64 listingCharge)
         ERC721("ChainState Protocol", "CSP")
     {
@@ -68,9 +69,10 @@ contract ChainStateProtocol is ERC721URIStorage {
         assetsListingCharge = listingCharge;
     }
 
-    //////////////////////
-    //modifiers
-    //////////////////////
+    /// ---------------------------------
+    /// ----------- MODIFIERS -----------
+    /// ---------------------------------
+
     modifier onlyAdmin() {
         if (msg.sender != administrator) {
             revert notAdminError("ChainState Protocol: Only administrator");
@@ -106,7 +108,7 @@ contract ChainStateProtocol is ERC721URIStorage {
             "ChainState Protocol: Max number of owners can't be zero"
         );
 
-        uint32 assetId = uint32(assetsTotalCount.current());
+        uint256 assetId = assetsTotalCount.current();
         assetsTotalCount.increment();
 
         AssetDetails storage AST = idToAssets[assetId];
@@ -118,6 +120,7 @@ contract ChainStateProtocol is ERC721URIStorage {
         AST.fractionalOwners[0] = lister;
         AST.maxNumberOfOwners = maxNumberOfOwners;
         AST.totalOwners = 1;
+        AST.totalAmountFromSales = 0;
 
         emit AssetListed(
             assetURI,
@@ -126,7 +129,8 @@ contract ChainStateProtocol is ERC721URIStorage {
             assetSalePrice,
             properties,
             maxNumberOfOwners,
-            1
+            1,
+            0
         );
 
         _safeMint(address(this), assetId);
@@ -134,7 +138,32 @@ contract ChainStateProtocol is ERC721URIStorage {
     }
 
     ///@dev function to buy a fraction of an asset or whole asset
-    function payForAsset() external payable {}
+    function buyAsset(uint256 _assetId) external payable {
+        require(
+            _assetId <= assetsTotalCount.current(),
+            "ChainState Protocol: Invalid asset Id"
+        );
+
+        AssetDetails storage AST = idToAssets[_assetId];
+
+        assert(AST.fractionalOwners[0] != address(0));
+
+        if (AST.fractionalOwners.length <= AST.maxNumberOfOwners) {
+            revert wrongAction(
+                "ChainState Protocol: Max number of asset owners reached"
+            );
+        }
+
+        require(
+            msg.value == AST.assetSalePrice,
+            "ChainState Protocol: Provide correct asset price"
+        );
+        AST.totalOwners += 1;
+        AST.fractionalOwners.push(msg.sender);
+
+        //mint asset as NFT for buyer for proof of ownership IRL
+        _safeMint(msg.sender, _assetId);
+    }
 
     ///@dev function for ERC721 receiver, so our contract can receive NFT tokens using safe functions
     function onERC721Received(
