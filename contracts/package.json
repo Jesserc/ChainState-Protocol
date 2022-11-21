@@ -1,0 +1,28 @@
+{
+  "name": "renfinance-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for renfinace Protocol",
+  "main": "/contracts",
+  "scripts": {
+    "test": "npx hardhat run test"
+  },
+  "keywords": [
+    "solidity",
+    "ethereum",
+    "blockchain",
+    "web3",
+    "finance",
+    "defi",
+    "renfinance",
+    "dapp"
+  ],
+  "author": "Jesse Raymond",
+  "license": "MIT",
+  "devDependencies": {
+    "@chainlink/contracts": "^0.5.1",
+    "@nomicfoundation/hardhat-toolbox": "^2.0.0",
+    "@openzeppelin/contracts": "^4.8.0",
+    "dotenv": "^16.0.3",
+    "hardhat": "^2.12.2"
+  }
+}
