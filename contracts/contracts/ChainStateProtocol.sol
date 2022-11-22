@@ -14,7 +14,7 @@ contract ChainStateProtocol is ERC721URIStorage {
     address payable internal administrator;
 
     //charge for an asset to be added to the protocol by an admin
-    uint64 assetsListingFee;
+    uint64 assetsListingFeePercentage;
 
     /// @dev structure of real estate assets
     struct AssetDetails {
@@ -67,13 +67,13 @@ contract ChainStateProtocol is ERC721URIStorage {
     /// -----------------------------------
     /// ----------- CONSTRUCTOR -----------
     /// -----------------------------------
-    constructor(address payable admin, uint64 listingCharge)
+    constructor(address payable admin, uint64 listingPercentage)
         ERC721("ChainState Protocol", "CSP")
     {
         require(admin != address(0));
 
         administrator = admin;
-        assetsListingFee = listingCharge;
+        assetsListingFeePercentage = listingPercentage;
     }
 
     /// ---------------------------------
@@ -197,6 +197,21 @@ contract ChainStateProtocol is ERC721URIStorage {
         );
 
         AST.status = AssetStatus.BUYER_HAS_RECEIVED;
+    }
+
+    function getAllAssets() external {
+        AssetDetails[] memory allAssets = new AssetDetails[](
+            assetsTotalCount.current()
+        );
+
+        uint256 index;
+        uint256 currentItem;
+
+        for (uint256 index; index < allAssets.length; ) {
+            unchecked {
+                ++index;
+            }
+        }
     }
 
     /// @dev Function for event creators to withdraw amount gotten from their ticket sale
