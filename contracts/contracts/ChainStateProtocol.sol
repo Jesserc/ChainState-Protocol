@@ -14,7 +14,7 @@ contract ChainStateProtocol is ERC721URIStorage {
     address payable internal administrator;
 
     //charge for an asset to be added to the protocol by an admin
-    uint64 assetsListingCharge;
+    uint64 assetsListingFee;
 
     /// @dev structure of real estate assets
     struct AssetDetails {
@@ -22,15 +22,24 @@ contract ChainStateProtocol is ERC721URIStorage {
         string assetName;
         string assetLocation;
         uint112 assetSalePrice;
-        string[] properties;
-        address[] fractionalOwners; //individual fraction owners will have their unique balance through a mapping
-        uint16 maxNumberOfOwners;
-        uint16 totalOwners;
+        string[] assetProperties;
+        address lister;
+        address buyer;
+        bool sold;
+        AssetStatus status;
         uint256 totalAmountFromSales;
     }
 
+    /// -----------------------------
+    /// ----------- ENUMS -----------
+    /// -----------------------------
+    enum AssetStatus {
+        BUYER_HAS_NOT_RECEIVED,
+        BUYER_HAS_RECEIVED
+    }
+
     //////////////////////
-    //mappings
+    //-----MAPPINGS-------
     //////////////////////
     mapping(uint256 => AssetDetails) idToAssets;
     mapping(address => AssetDetails[]) ownedAssets;
@@ -40,6 +49,7 @@ contract ChainStateProtocol is ERC721URIStorage {
     //////////////////////
     error notAdminError(string);
     error wrongAction(string);
+
     //////////////////////
     //events
     //////////////////////
@@ -48,10 +58,7 @@ contract ChainStateProtocol is ERC721URIStorage {
         string assetName,
         string assetLocation,
         uint112 assetSalePrice,
-        string[] properties,
-        uint16 maxNumberOfOwners,
-        uint16 totalOwners,
-        uint256 totalAmountFromSales
+        string[] assetProperties
     );
 
     //event for ERC721 receiver
@@ -66,7 +73,7 @@ contract ChainStateProtocol is ERC721URIStorage {
         require(admin != address(0));
 
         administrator = admin;
-        assetsListingCharge = listingCharge;
+        assetsListingFee = listingCharge;
     }
 
     /// ---------------------------------
@@ -83,15 +90,17 @@ contract ChainStateProtocol is ERC721URIStorage {
     ///@dev function to list an IRL asset on-chain,
     ///requires msg.sender to be administrator
     function listAsset(
-        address lister,
         string memory assetURI,
         string memory assetName,
         string memory assetLocation,
         uint112 assetSalePrice,
-        string[] memory properties,
-        uint16 maxNumberOfOwners
-    ) external onlyAdmin {
-        if (properties.length == 0) {
+        string[] memory assetProperties
+    )
+        external
+        // uint16 maxNumberOfOwners
+        onlyAdmin
+    {
+        if (assetProperties.length == 0) {
             revert wrongAction(
                 "ChainState Protocol: Asset must have a unique property"
             );
@@ -103,11 +112,6 @@ contract ChainStateProtocol is ERC721URIStorage {
             );
         }
 
-        require(
-            maxNumberOfOwners > 0,
-            "ChainState Protocol: Max number of owners can't be zero"
-        );
-
         uint256 assetId = assetsTotalCount.current();
         assetsTotalCount.increment();
 
@@ -116,10 +120,9 @@ contract ChainStateProtocol is ERC721URIStorage {
         AST.assetName = assetName;
         AST.assetLocation = assetLocation;
         AST.assetSalePrice = assetSalePrice;
-        AST.properties = properties;
-        AST.fractionalOwners[0] = lister;
-        AST.maxNumberOfOwners = maxNumberOfOwners;
-        AST.totalOwners = 1;
+        AST.assetProperties = assetProperties;
+        AST.lister = msg.sender;
+        AST.status = AssetStatus.BUYER_HAS_NOT_RECEIVED;
         AST.totalAmountFromSales = 0;
 
         emit AssetListed(
@@ -127,17 +130,14 @@ contract ChainStateProtocol is ERC721URIStorage {
             assetName,
             assetLocation,
             assetSalePrice,
-            properties,
-            maxNumberOfOwners,
-            1,
-            0
+            assetProperties
         );
 
         _safeMint(address(this), assetId);
         _setTokenURI(assetId, assetURI);
     }
 
-    ///@dev function to buy a fraction of an asset or whole asset
+    ///@dev function to buy an asset
     function buyAsset(uint256 _assetId) external payable {
         require(
             _assetId <= assetsTotalCount.current(),
@@ -146,25 +146,102 @@ contract ChainStateProtocol is ERC721URIStorage {
 
         AssetDetails storage AST = idToAssets[_assetId];
 
-        assert(AST.fractionalOwners[0] != address(0));
+        //require that the asset has been listed
+        if (AST.lister != address(0)) {
+            revert wrongAction("ChainState Protocol: Asset does not exist");
+        }
 
-        if (AST.fractionalOwners.length <= AST.maxNumberOfOwners) {
+        //require that the asset has not been sold
+        if (AST.buyer != address(0)) {
             revert wrongAction(
-                "ChainState Protocol: Max number of asset owners reached"
+                "ChainState Protocol: Asset has been sold already"
             );
         }
+        assert(!AST.sold);
 
         require(
             msg.value == AST.assetSalePrice,
             "ChainState Protocol: Provide correct asset price"
         );
-        AST.totalOwners += 1;
-        AST.fractionalOwners.push(msg.sender);
+
+        AST.buyer = msg.sender;
+        AST.sold = true;
 
         //mint asset as NFT for buyer for proof of ownership IRL
         _safeMint(msg.sender, _assetId);
     }
 
+    /// @dev function to delivery confirmation of asset
+    /// only called by admin after confirming handover od asset to
+    /// buyer off-chain
+    function setAssetStatus(uint256 _assetId) external onlyAdmin {
+        require(
+            _assetId <= assetsTotalCount.current(),
+            "ChainState Protocol: Invalid asset Id"
+        );
+
+        AssetDetails storage AST = idToAssets[_assetId];
+
+        //require that the asset has been sold
+        if (AST.buyer == address(0)) {
+            revert wrongAction(
+                "ChainState Protocol: Asset has not been sold yet"
+            );
+        }
+
+        require(AST.sold);
+
+        require(
+            AST.status == AssetStatus.BUYER_HAS_NOT_RECEIVED,
+            "ChainState Protocol: Buyer already received asset off-chain"
+        );
+
+        AST.status = AssetStatus.BUYER_HAS_RECEIVED;
+    }
+
+    /// @dev Function for event creators to withdraw amount gotten from their ticket sale
+    /*     function withdrawAmountFromTicketSale(uint256 _tokenId)
+        public
+        returns (
+            string memory,
+            uint256,
+            string memory,
+            uint256
+        )
+    {
+        AssetDetails memory AST = idToAssets[_assetId];
+
+        address assetLister = AST.ow;
+        require(msg.sender == eventCreator, "Not event owner");
+
+        require(_tokenId <= _tokenIdCounter.current(), "Token does not exist");
+
+        require(
+            idToListedEvent[_tokenId].isCurrentlyListed,
+            "Ticket sale ended"
+        );
+        idToListedEvent[_tokenId].isCurrentlyListed = false;
+
+        uint256 amount = idToListedEvent[_tokenId].totalAmountGottenFromSale;
+        require(eventCreator != address(0), "Error: Invalid Ticket");
+        require(amount > 0, "Error: No ticket sale yet, nothing to withdraw");
+
+        (uint256 eventListingFee, uint256 remainingBalance) = this
+            .getFeePercentage(amount);
+
+        (bool success, ) = payable(owner_).call{value: eventListingFee}("");
+        (bool tx, ) = payable(eventCreator).call{value: remainingBalance}("");
+
+        require(success, "Failed to send");
+        require(tx, "Failed to send");
+        return (
+            "Our fee:",
+            eventListingFee,
+            "Amount sent to event creator",
+            remainingBalance
+        );
+    }
+ */
     ///@dev function for ERC721 receiver, so our contract can receive NFT tokens using safe functions
     function onERC721Received(
         address _operator,
