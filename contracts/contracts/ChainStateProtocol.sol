@@ -2,8 +2,9 @@
 pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-contract ChainStateProtocol is ERC721URIStorage {
+contract ChainStateProtocol is ERC721URIStorage, IERC721Receiver {
     /// ---------------------------------------
     /// ----------- STATE VARIABLES -----------
     /// ---------------------------------------
@@ -12,7 +13,7 @@ contract ChainStateProtocol is ERC721URIStorage {
     Counters.Counter public assetsTotalCount;
 
     /// address with admin right for ChainState Protocol
-    address payable internal administrator;
+    address administrator;
 
     /// @notice - the charge percentage charge for an asset to be added to the protocol by an admin
     /// @dev - the value is a base point number ---> 1.2% === 120/10_000
@@ -323,7 +324,7 @@ contract ChainStateProtocol is ERC721URIStorage {
         address _from,
         uint256 _tokenId,
         bytes calldata _data
-    ) external returns (bytes4) {
+    ) external override returns (bytes4) {
         _operator;
         _from;
         _tokenId;
