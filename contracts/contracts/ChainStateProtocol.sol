@@ -43,6 +43,10 @@ contract ChainStateProtocol is ERC721URIStorage {
     //////////////////////
     mapping(uint256 => AssetDetails) idToAssets;
     mapping(address => AssetDetails[]) ownedAssets;
+    /// asset id => asset fee charged
+    mapping(uint256 => uint256) assetFeeCharged;
+    /// asset id => asset fee charged
+    mapping(uint256 => uint256) assetFeeCharged;
 
     //////////////////////
     //custom errors
@@ -119,7 +123,7 @@ contract ChainStateProtocol is ERC721URIStorage {
         AST.assetURI = assetURI;
         AST.assetName = assetName;
         AST.assetLocation = assetLocation;
-        AST.assetSalePrice = assetSalePrice;
+        AST.assetSalePrice = assetSalePrice * 1 ether;
         AST.assetProperties = assetProperties;
         AST.lister = msg.sender;
         AST.status = AssetStatus.BUYER_HAS_NOT_RECEIVED;
@@ -199,64 +203,78 @@ contract ChainStateProtocol is ERC721URIStorage {
         AST.status = AssetStatus.BUYER_HAS_RECEIVED;
     }
 
-    function getAllAssets() external {
+    /// @dev function to get all asset
+    function getAllAssets() external view {
         AssetDetails[] memory allAssets = new AssetDetails[](
             assetsTotalCount.current()
         );
 
-        uint256 index;
         uint256 currentItem;
 
-        for (uint256 index; index < allAssets.length; ) {
+        for (uint256 i; i < allAssets.length; ) {
+            AssetDetails storage assets = idToAssets[i];
+            allAssets[currentItem] = assets;
+            currentItem += 1;
+
             unchecked {
-                ++index;
+                ++i;
             }
         }
     }
 
-    /// @dev Function for event creators to withdraw amount gotten from their ticket sale
-    /*     function withdrawAmountFromTicketSale(uint256 _tokenId)
-        public
-        returns (
-            string memory,
-            uint256,
-            string memory,
-            uint256
-        )
-    {
-        AssetDetails memory AST = idToAssets[_assetId];
+    function getMyAssets() external view {
+        AssetDetails[] memory allAssets = new AssetDetails[](
+            assetsTotalCount.current()
+        );
 
-        address assetLister = AST.ow;
-        require(msg.sender == eventCreator, "Not event owner");
+        uint256 myItemCount;
+        uint256 currentItem;
 
-        require(_tokenId <= _tokenIdCounter.current(), "Token does not exist");
+        for (uint256 i; i < allAssets.length; ) {
+            if (idToAssets[i].buyer == msg.sender) {
+                myItemCount += 1;
+            }
+
+            unchecked {
+                ++i;
+            }
+        }
+
+        AssetDetails[] memory myAssets = new AssetDetails[](myItemCount);
+
+        for (uint256 i; i < myAssets.length; ) {
+            AssetDetails storage assets = idToAssets[i];
+            myAssets[currentItem] = assets;
+            currentItem += 1;
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    /// @dev internal function to fulfill payments for asset listers(only called by the admin)
+    /// after confirming that an asset has been received by buyer off-chain
+
+    function fulfillPayments(uint256 _assetId) internal {
+        uint256 assetPrice;
+        uint256 newAssetPrice;
 
         require(
-            idToListedEvent[_tokenId].isCurrentlyListed,
-            "Ticket sale ended"
+            _assetId <= assetsTotalCount.current(),
+            "ChainState Protocol: Invalid asset Id"
         );
-        idToListedEvent[_tokenId].isCurrentlyListed = false;
 
-        uint256 amount = idToListedEvent[_tokenId].totalAmountGottenFromSale;
-        require(eventCreator != address(0), "Error: Invalid Ticket");
-        require(amount > 0, "Error: No ticket sale yet, nothing to withdraw");
-
-        (uint256 eventListingFee, uint256 remainingBalance) = this
-            .getFeePercentage(amount);
-
-        (bool success, ) = payable(owner_).call{value: eventListingFee}("");
-        (bool tx, ) = payable(eventCreator).call{value: remainingBalance}("");
-
-        require(success, "Failed to send");
-        require(tx, "Failed to send");
-        return (
-            "Our fee:",
-            eventListingFee,
-            "Amount sent to event creator",
-            remainingBalance
+        AssetDetails storage AST = idToAssets[_assetId];
+        require(
+            AST.status == AssetStatus.BUYER_HAS_RECEIVED,
+            "ChainState Protocol: Buyer not received asset off-chain"
         );
+
+        assetPrice = AST.assetSalePrice;
+        newAssetPrice = (assetPrice * assetsListingFeePercentage) / 10_000;
     }
- */
+
     ///@dev function for ERC721 receiver, so our contract can receive NFT tokens using safe functions
     function onERC721Received(
         address _operator,
