@@ -30,6 +30,7 @@ contract ChainStateProtocol is ERC721URIStorage, IERC721Receiver {
         uint112 assetSalePrice;
         string[] assetProperties;
         address lister;
+        string listerDetails;
         address buyer;
         bool sold;
         AssetStatus status;
@@ -119,7 +120,8 @@ contract ChainStateProtocol is ERC721URIStorage, IERC721Receiver {
         string memory assetName,
         string memory assetLocation,
         uint112 assetSalePrice,
-        string[] memory assetProperties
+        string[] memory assetProperties,
+        string memory listerDetails
     ) external onlyAdmin {
         if (assetProperties.length == 0) {
             revert wrongAction(
@@ -143,6 +145,7 @@ contract ChainStateProtocol is ERC721URIStorage, IERC721Receiver {
         AST.assetSalePrice = assetSalePrice * 1 ether;
         AST.assetProperties = assetProperties;
         AST.lister = msg.sender;
+        AST.listerDetails = listerDetails;
         AST.status = AssetStatus.BUYER_HAS_NOT_RECEIVED;
         AST.totalAmountFromSales = 0;
 
